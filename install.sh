@@ -111,7 +111,8 @@ load_config() {
                INSTALL_DOCKER INSTALL_GOLANG INSTALL_OPENCODE \
                INSTALL_GIT INSTALL_JQ INSTALL_CURL INSTALL_MAKE \
                INSTALL_UNZIP INSTALL_DIRENV INSTALL_STARSHIP \
-               INSTALL_RIPGREP INSTALL_FZF INSTALL_HTOP INSTALL_TREE; do
+               INSTALL_BASH_PROMPT INSTALL_RIPGREP INSTALL_FZF \
+               INSTALL_HTOP INSTALL_TREE; do
       declare -g "$var"=false
     done
     for t in "${ONLY_TOOLS[@]}"; do
@@ -551,6 +552,40 @@ install_starship() {
 }
 
 # ---------------------------------------------------------------------------
+# Bash git-aware prompt  (CWD basename + branch)
+# ---------------------------------------------------------------------------
+install_bash_prompt() {
+  [[ "${INSTALL_BASH_PROMPT:-true}" == "true" ]] || { info "Skipping bash_prompt"; return; }
+
+  # Only apply to bash-based shell RCs; skip fish/zsh (they have their own prompts)
+  if [[ "$SHELL_RC" == *fish* || "$SHELL_RC" == *zsh* ]]; then
+    warn "bash_prompt.sh is bash-only — skipping for $(basename "$SHELL_RC")"
+    return
+  fi
+
+  section "Bash git-aware prompt"
+
+  local dest="${HOME}/.config/bash_prompt.sh"
+  local src="${SCRIPT_DIR}/bash_prompt.sh"
+
+  if [[ ! -f "$src" ]]; then
+    warn "bash_prompt.sh not found at ${src} — skipping"
+    return
+  fi
+
+  if ! $DRY_RUN; then
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+  fi
+
+  append_to_shell_rc "# bash_prompt" \
+"# Custom git-aware prompt (installed by dev-vm-tools)
+[[ -f \"${dest}\" ]] && source \"${dest}\""
+
+  success "bash_prompt installed → ${dest} (sourced from ${SHELL_RC})"
+}
+
+# ---------------------------------------------------------------------------
 # opencode  (AI coding assistant CLI)
 # ---------------------------------------------------------------------------
 install_opencode() {
@@ -642,6 +677,7 @@ main() {
   install_docker
   install_golang
   install_starship
+  install_bash_prompt
   install_opencode
   print_summary
 }

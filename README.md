@@ -15,7 +15,8 @@ One-shot development VM bootstrap for **Ubuntu/Debian**, **RHEL family** (Fedora
 | **Podman** *(RHEL / macOS)* | Rootless container runtime | dnf / brew |
 | **Go** | Systems / cloud-native language | go.dev (SHA256-verified) |
 | **opencode** | AI coding assistant CLI | npm / pnpm global |
-| **Starship** | Cross-shell prompt | starship.rs |
+| **Bash git prompt** | CWD basename + git branch in PS1 | `bash_prompt.sh` (sourced into `~/.bashrc`) |
+| **Starship** | Cross-shell prompt (alternative to above) | starship.rs |
 | **ripgrep** | Fast `grep` replacement | system package manager |
 | **fzf** | Fuzzy finder | system package manager |
 | **direnv** | Per-directory env vars | system package manager |
@@ -78,7 +79,8 @@ Edit `config.env` before running. Every tool has a `INSTALL_<TOOL>=true/false` f
 ```bash
 # Disable tools you don't need
 INSTALL_HTOP=false
-INSTALL_STARSHIP=false
+INSTALL_STARSHIP=false   # set true to use starship instead of bash_prompt
+INSTALL_BASH_PROMPT=false  # set false if using starship
 
 # Pin specific versions
 NODE_VERSION="lts/iron"   # or "22", "20", etc.

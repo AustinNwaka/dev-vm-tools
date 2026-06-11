@@ -14,6 +14,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - `--dry-run` mode: prints all actions without executing
 - `--config <path>` to load a custom env file
 - Tools: git, nvm/Node LTS, pnpm, uv, ruff, Docker Engine (Ubuntu) / Podman (RHEL/macOS), Go (SHA256-verified), opencode, starship
+- `bash_prompt.sh`: minimal bash PS1 showing CWD basename + git branch in colour; installed to `~/.config/bash_prompt.sh` and sourced from shell RC; mutually exclusive with starship via `INSTALL_BASH_PROMPT` / `INSTALL_STARSHIP` flags
 - Optional extras: ripgrep, fzf, direnv, jq, make, curl, wget, unzip, htop, tree
 - Automatic shell RC detection and PATH patching (bash / zsh)
 - `install.log` per-run append log
