@@ -1,4 +1,4 @@
-# vm-tools
+# Dev vm-tools
 
 One-shot development VM bootstrap for **Ubuntu/Debian**, **RHEL family** (Fedora, CentOS Stream, Rocky, AlmaLinux), and **macOS**.
 
