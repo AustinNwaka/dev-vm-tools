@@ -1,0 +1,5 @@
+install.log
+*.log
+my.env
+custom.env
+*.local.env
