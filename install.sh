@@ -309,9 +309,15 @@ install_node() {
     success "nvm already present at ${NVM_DIR}"
   else
     info "Downloading nvm v${NVM_VERSION} from GitHub (pinned tag, HTTPS)"
-    run_visible "curl -fsSL \
-      https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh \
-      | PROFILE=/dev/null bash"
+    # PROFILE=/dev/null prevents nvm from auto-modifying shell rc (we do it manually).
+    # nvm warns "Profile not found" because of this, but we add the config ourselves.
+    if $DRY_RUN; then
+      dry "curl -fsSL ... | PROFILE=/dev/null bash"
+    else
+      curl -fsSL \
+        "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" \
+        | PROFILE=/dev/null bash 2>> "$LOG_FILE"
+    fi
     # shellcheck source=/dev/null
     [[ -s "${NVM_DIR}/nvm.sh" ]] && source "${NVM_DIR}/nvm.sh"
   fi
@@ -500,15 +506,19 @@ install_golang() {
 
   local tarball="${go_ver}.${goos}-${arch}.tar.gz"
   local url="https://go.dev/dl/${tarball}"
-  local checksum_url="https://go.dev/dl/${tarball}.sha256"
 
   info "Downloading ${tarball} from go.dev"
   run "curl -fsSL -o /tmp/${tarball} ${url}"
 
-  # Verify SHA256 (go.dev serves a .sha256 file for every release)
+  # Verify SHA256 (extract from JSON API since .sha256 URLs return HTML redirects)
   if ! $DRY_RUN; then
     local expected actual
-    expected=$(curl -fsSL "${checksum_url}")
+    expected=$(curl -fsSL "https://go.dev/dl/?mode=json" \
+      | python3 -c "import sys,json; data=json.load(sys.stdin); \
+        stable=[r for r in data if r['stable']]; \
+        files=stable[0]['files']; \
+        f=[x for x in files if x['arch']=='${arch}' and x['os']=='${goos}']; \
+        print(f[0]['sha256'])" 2>/dev/null)
     actual=$(sha256sum "/tmp/${tarball}" | awk '{print $1}')
     if [[ "$expected" != "$actual" ]]; then
       error "SHA256 mismatch for ${tarball}! Expected: ${expected}  Got: ${actual}"
