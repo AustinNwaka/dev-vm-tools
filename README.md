@@ -26,7 +26,7 @@ One-shot development VM bootstrap for **Ubuntu/Debian**, **RHEL family** (Fedora
 ## Quick start
 
 ```bash
-git clone https://github.com/yourorg/vm-tools.git
+git clone https://github.com/AustinNwaka/dev-vm-tools.git
 cd vm-tools
 chmod +x install.sh
 
