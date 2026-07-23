@@ -4,15 +4,25 @@ All notable changes to vm-tools are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-07-23
+
+### Added
+
+- Categorised tool configuration and documentation into Core, IaC / DevOps, and Developer Experience
+- Optional Ansible installation using `uv tool install ansible-core --with ansible`, with `ANSIBLE_VERSION` support
+- Optional Terraform installation using HashiCorp's official Linux repositories or Homebrew tap
+
 ## [1.0.1] — 2026-06-16
 
 ### Fixed
+
 - `install.sh` Go installation: SHA256 verification now extracts hash from JSON API (`go.dev/dl/?mode=json`) instead of broken `.sha256` URLs that return HTML redirects
 - `install.sh` Node.js installation: suppress misleading nvm "Profile not found" warning (intentionally silenced since we manually control shell RC modifications)
 
 ## [1.0.0] — 2026-06-11
 
 ### Added
+
 - `install.sh`: one-shot bootstrap for Ubuntu/Debian, RHEL family, macOS
 - `config.env`: user-customisable flags and version pins for all tools
 - OS detection (Debian / RHEL / macOS) with appropriate package managers

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # vm-tools/install.sh  —  Development VM bootstrap
-# Version: 1.0.0
+# Version: 1.1.0
 #
 # Supported OS families:
 #   • Ubuntu / Debian
@@ -97,11 +97,11 @@ load_config() {
     warn "No config file found at $CONFIG_FILE — using built-in defaults"
     INSTALL_UV=true; INSTALL_PNPM=true; INSTALL_NODE=true
     INSTALL_RUFF=true; INSTALL_DOCKER=true; INSTALL_GOLANG=true
-    INSTALL_OPENCODE=true; INSTALL_GIT=true; INSTALL_JQ=true
-    INSTALL_CURL=true; INSTALL_MAKE=true; INSTALL_UNZIP=true
-    INSTALL_DIRENV=true; INSTALL_STARSHIP=true; INSTALL_RIPGREP=true
-    INSTALL_FZF=true; INSTALL_HTOP=true; INSTALL_TREE=true
-    NODE_VERSION="lts/*"; GO_VERSION=""; PNPM_VERSION=""
+    INSTALL_OPENCODE=true; INSTALL_ANSIBLE=false; INSTALL_TERRAFORM=false
+    INSTALL_GIT=true; INSTALL_JQ=true; INSTALL_CURL=true; INSTALL_MAKE=true
+    INSTALL_UNZIP=true; INSTALL_DIRENV=true; INSTALL_STARSHIP=true
+    INSTALL_RIPGREP=true; INSTALL_FZF=true; INSTALL_HTOP=true; INSTALL_TREE=true
+    NODE_VERSION="lts/*"; GO_VERSION=""; PNPM_VERSION=""; ANSIBLE_VERSION=""
     SHELL_RC=""
   fi
 
@@ -109,16 +109,19 @@ load_config() {
   if [[ ${#ONLY_TOOLS[@]} -gt 0 ]]; then
     for var in INSTALL_UV INSTALL_PNPM INSTALL_NODE INSTALL_RUFF \
                INSTALL_DOCKER INSTALL_GOLANG INSTALL_OPENCODE \
-               INSTALL_GIT INSTALL_JQ INSTALL_CURL INSTALL_MAKE \
-               INSTALL_UNZIP INSTALL_DIRENV INSTALL_STARSHIP \
-               INSTALL_BASH_PROMPT INSTALL_RIPGREP INSTALL_FZF \
-               INSTALL_HTOP INSTALL_TREE; do
+               INSTALL_ANSIBLE INSTALL_TERRAFORM INSTALL_GIT INSTALL_JQ \
+               INSTALL_CURL INSTALL_MAKE INSTALL_UNZIP INSTALL_DIRENV \
+               INSTALL_STARSHIP INSTALL_BASH_PROMPT INSTALL_RIPGREP \
+               INSTALL_FZF INSTALL_HTOP INSTALL_TREE; do
       declare -g "$var"=false
     done
     for t in "${ONLY_TOOLS[@]}"; do
       local upper; upper="INSTALL_$(echo "$t" | tr '[:lower:]' '[:upper:]')"
       declare -g "$upper"=true
     done
+
+    [[ "${INSTALL_ANSIBLE:-false}" == "true" ]] && INSTALL_UV=true
+    [[ "${INSTALL_TERRAFORM:-false}" == "true" ]] && INSTALL_CURL=true
   fi
 
   # Apply --skip overrides
@@ -415,6 +418,56 @@ install_ruff() {
 }
 
 # ---------------------------------------------------------------------------
+# IaC / DevOps
+# ---------------------------------------------------------------------------
+install_ansible() {
+  [[ "${INSTALL_ANSIBLE:-false}" == "true" ]] || { info "Skipping Ansible"; return; }
+  section "IaC / DevOps: Ansible"
+
+  if ! command -v uv &>/dev/null; then
+    warn "uv is required to install Ansible. Enable INSTALL_UV or install uv first. Skipping."
+    return
+  fi
+
+  local package="ansible-core"
+  [[ -n "${ANSIBLE_VERSION:-}" ]] && package="ansible-core==${ANSIBLE_VERSION}"
+
+  info "Installing ${package} with the ansible community package via uv"
+  run "uv tool install ${package} --with ansible --reinstall"
+  success "Ansible installed"
+}
+
+install_terraform() {
+  [[ "${INSTALL_TERRAFORM:-false}" == "true" ]] || { info "Skipping Terraform"; return; }
+  section "IaC / DevOps: Terraform"
+
+  if command -v terraform &>/dev/null; then
+    success "terraform $(terraform version -json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"terraform_version\"])' 2>/dev/null || terraform version | head -1) already installed"
+    return
+  fi
+
+  case "$OS_FAMILY" in
+    debian)
+      local codename
+      codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+      run "curl -fsSL https://apt.releases.hashicorp.com/gpg | $SUDO gpg --dearmor --yes -o /usr/share/keyrings/hashicorp-archive-keyring.gpg"
+      run "echo 'deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com ${codename} main' | $SUDO tee /etc/apt/sources.list.d/hashicorp.list > /dev/null"
+      run "$SUDO apt-get update -qq && $SUDO apt-get install -y -qq terraform"
+      ;;
+    rhel)
+      run "$SUDO dnf install -y -q dnf-plugins-core"
+      run "$SUDO dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo"
+      run "$SUDO dnf install -y -q terraform"
+      ;;
+    macos)
+      run "brew tap hashicorp/tap && brew install hashicorp/tap/terraform"
+      ;;
+  esac
+
+  success "Terraform installed"
+}
+
+# ---------------------------------------------------------------------------
 # Docker Engine (Ubuntu/Debian) or Podman (RHEL/macOS)
 # ---------------------------------------------------------------------------
 install_docker() {
@@ -630,7 +683,7 @@ install_opencode() {
 # ---------------------------------------------------------------------------
 print_summary() {
   section "Installation Summary"
-  local tools=(git node npm pnpm uv ruff docker podman go starship opencode rg fzf direnv jq)
+  local tools=(git node npm pnpm uv ruff ansible terraform docker podman go starship opencode rg fzf direnv jq)
   for t in "${tools[@]}"; do
     if command -v "$t" &>/dev/null 2>&1; then
       local ver
@@ -641,6 +694,8 @@ print_summary() {
           pnpm)     pnpm --version ;;
           uv)       uv --version ;;
           ruff)     ruff --version ;;
+          ansible)  ansible --version | head -1 ;;
+          terraform) terraform version -json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["terraform_version"])' 2>/dev/null || terraform version | head -1 ;;
           docker)   docker --version | awk '{print $3}' | tr -d ',' ;;
           podman)   podman --version | awk '{print $3}' ;;
           go)       go version | awk '{print $3}' ;;
@@ -684,6 +739,8 @@ main() {
   install_pnpm
   install_uv
   install_ruff
+  install_ansible
+  install_terraform
   install_docker
   install_golang
   install_starship

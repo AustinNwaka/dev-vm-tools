@@ -4,24 +4,23 @@ One-shot development VM bootstrap for **Ubuntu/Debian**, **RHEL family** (Fedora
 
 ## Installed toolchain
 
-| Tool | Purpose | Install method |
-|---|---|---|
-| **Git** (latest) | Source control | apt-core PPA / dnf / brew |
-| **nvm** + **Node.js LTS** | JavaScript runtime + npm | nvm official script |
-| **pnpm** | Fast Node package manager | get.pnpm.io |
-| **uv** | Python package & project manager | astral.sh |
-| **ruff** | Python linter + formatter | uv tool / astral.sh |
-| **Docker Engine** *(Ubuntu/Debian)* | Container runtime | Docker's official APT repo |
-| **Podman** *(RHEL / macOS)* | Rootless container runtime | dnf / brew |
-| **Go** | Systems / cloud-native language | go.dev (SHA256-verified) |
-| **opencode** | AI coding assistant CLI | npm / pnpm global |
-| **Bash git prompt** | CWD basename + git branch in PS1 | `bash_prompt.sh` (sourced into `~/.bashrc`) |
-| **Starship** | Cross-shell prompt (alternative to above) | starship.rs |
-| **ripgrep** | Fast `grep` replacement | system package manager |
-| **fzf** | Fuzzy finder | system package manager |
-| **direnv** | Per-directory env vars | system package manager |
-| **jq** | JSON processor | system package manager |
-| **make**, **curl**, **wget**, **unzip**, **htop**, **tree** | Standard dev utilities | system package manager |
+| Category             | Tool                                                 | Purpose                                   | Install method                                |
+| -------------------- | ---------------------------------------------------- | ----------------------------------------- | --------------------------------------------- |
+| Core                 | **Git** (latest)                                     | Source control                            | apt-core PPA / dnf / brew                     |
+| Core                 | **nvm** + **Node.js LTS**                            | JavaScript runtime + npm                  | nvm official script                           |
+| Core                 | **pnpm**                                             | Fast Node package manager                 | get.pnpm.io                                   |
+| Core                 | **uv**                                               | Python package & project manager          | astral.sh                                     |
+| Core                 | **Go**                                               | Systems / cloud-native language           | go.dev (SHA256-verified)                      |
+| Core                 | **jq**, **make**, **curl**, **wget**, **unzip**      | Standard dev utilities                    | system package manager                        |
+| IaC / DevOps         | **Ansible**                                          | Infrastructure automation                 | `uv tool install ansible-core --with ansible` |
+| IaC / DevOps         | **Terraform**                                        | Infrastructure provisioning               | HashiCorp official repo / Homebrew tap        |
+| IaC / DevOps         | **Docker Engine** _(Ubuntu/Debian)_                  | Container runtime                         | Docker's official APT repo                    |
+| IaC / DevOps         | **Podman** _(RHEL / macOS)_                          | Rootless container runtime                | dnf / brew                                    |
+| Developer Experience | **ruff**                                             | Python linter + formatter                 | uv tool / astral.sh                           |
+| Developer Experience | **opencode**                                         | AI coding assistant CLI                   | npm / pnpm global                             |
+| Developer Experience | **Bash git prompt**                                  | CWD basename + git branch in PS1          | `bash_prompt.sh` (sourced into `~/.bashrc`)   |
+| Developer Experience | **Starship**                                         | Cross-shell prompt (alternative to above) | starship.rs                                   |
+| Developer Experience | **ripgrep**, **fzf**, **direnv**, **htop**, **tree** | CLI workflow tools                        | system package manager                        |
 
 ## Quick start
 
@@ -68,6 +67,9 @@ OPTIONS
 # Install only uv and ruff on a CI worker
 ./install.sh --only uv ruff
 
+# Install IaC / DevOps tools only
+./install.sh --only ansible terraform
+
 # Use a team-shared config
 ./install.sh --config /etc/vm-tools/team.env
 ```
@@ -86,6 +88,7 @@ INSTALL_BASH_PROMPT=false  # set false if using starship
 NODE_VERSION="lts/iron"   # or "22", "20", etc.
 GO_VERSION="go1.23.4"     # full tag, e.g. go1.23.4
 PNPM_VERSION="9.15.0"     # leave empty for latest
+ANSIBLE_VERSION="2.18.3"  # leave empty for latest ansible-core
 ```
 
 All flags and their defaults are documented in [`config.env`](config.env).
@@ -96,13 +99,13 @@ Every installer function checks whether the tool is already present before insta
 
 ## Supply-chain hardening
 
-| Concern | Mitigation |
-|---|---|
-| **Tampered packages** | All APT/dnf repos are authenticated with vendor GPG keys added before use |
-| **Malicious installer scripts** | All installer scripts are fetched over HTTPS from canonical vendor domains; Go tarball SHA256 is fetched separately and verified before extraction |
-| **Version pinning** | `nvm` version is pinned in the script; Node/Go/pnpm can be pinned in `config.env` |
-| **Privilege escalation** | `sudo` is only used where required (system-level installs); user-level tools (uv, pnpm, nvm) install into `$HOME` |
-| **No ambient authority** | The script does not source arbitrary remote code without version pinning; the only exception is uv/ruff/starship whose install scripts are fetched from their respective owned domains |
+| Concern                         | Mitigation                                                                                                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tampered packages**           | All APT/dnf repos are authenticated with vendor GPG keys added before use                                                                                                              |
+| **Malicious installer scripts** | All installer scripts are fetched over HTTPS from canonical vendor domains; Go tarball SHA256 is fetched separately and verified before extraction                                     |
+| **Version pinning**             | `nvm` version is pinned in the script; Node/Go/pnpm can be pinned in `config.env`                                                                                                      |
+| **Privilege escalation**        | `sudo` is only used where required (system-level installs); user-level tools (uv, pnpm, nvm) install into `$HOME`                                                                      |
+| **No ambient authority**        | The script does not source arbitrary remote code without version pinning; the only exception is uv/ruff/starship whose install scripts are fetched from their respective owned domains |
 
 ## Log file
 
